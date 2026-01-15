@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+  <title>Agarz Premium 2D (Mobile)</title>
+  <style>
+    html,body{margin:0;height:100%;overflow:hidden;background:#070b12;font-family:system-ui,-apple-system,Segoe UI,Roboto}
+    canvas{display:block;touch-action:none}
+
+    #hud{
+      position:fixed;left:10px;top:10px;z-index:30;color:#fff;
+      background:rgba(0,0,0,.40);
+      padding:10px 12px;border-radius:16px;
+      backdrop-filter: blur(10px);
+      border:1px solid rgba(255,255,255,.10);
+      font-size:14px;line-height:1.2;
+      max-width: 390px;
+    }
+    #hud b{font-weight:900}
+    #hud .small{opacity:.78;font-size:12px;margin-top:6px}
+
+    #msg{
+      position:fixed;left:10px;right:10px;bottom:10px;z-index:30;color:#fff;
+      background:rgba(0,0,0,.28);
+      padding:10px 12px;border-radius:16px;
+      border:1px solid rgba(255,255,255,.08);
+      backdrop-filter: blur(8px);
+      font-size:13px;opacity:.95;
+    }
+
+    /* Joystick */
+    #joyBase{
+      position:fixed;left:16px;bottom:16px;width:140px;height:140px;border-radius:50%;
+      background:rgba(255,255,255,.07);
+      border:1px solid rgba(255,255,255,.10);
+      z-index:40;
+      touch-action:none;
+    }
+    #joyStick{
+      position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+      width:62px;height:62px;border-radius:50%;
+      background:rgba(255,255,255,.18);
+      border:1px solid rgba(255,255,255,.15);
+    }
+
+    /* Buttons */
+    .btn{
+      position:fixed;right:16px;z-index:40;border-radius:20px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      color:#fff;font-weight:900;
+      display:flex;align-items:center;justify-content:center;
+      user-select:none;-webkit-user-select:none;
+      touch-action:none;
+    }
+    #splitBtn{bottom:22px;width:92px;height:92px;font-size:18px}
+    #ejectBtn{bottom:126px;width:70px;height:70px;font-size:14px}
+    #boostBtn{bottom:208px;width:70px;height:70px;font-size:14px}
+
+    /* Settings */
+    #settingsBtn{
+      position:fixed;right:120px;top:10px;z-index:60;
+      width:44px;height:44px;border-radius:14px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      display:flex;align-items:center;justify-content:center;
+      color:#fff;font-size:20px;user-select:none;
+    }
+    #settingsPanel{
+      position:fixed;right:10px;top:60px;z-index:60;
+      width:270px;padding:12px;border-radius:16px;
+      background:rgba(0,0,0,.60);color:#fff;
+      backdrop-filter: blur(12px);
+      display:none;border:1px solid rgba(255,255,255,.12);
+    }
+    #settingsPanel .row{display:flex;gap:10px;align-items:center;margin:8px 0}
+    #settingsPanel .title{font-weight:900;font-size:16px;margin-bottom:6px}
+    #settingsPanel .row span{flex:1;font-size:13px;opacity:.95}
+    #settingsPanel input[type="range"]{flex:1.35}
+    #settingsPanel select{flex:1.35;padding:6px;border-radius:10px;border:none}
+    #settingsPanel .hint{opacity:.75;font-size:12px;line-height:1.25}
+  </style>
+</head>
+<body>
+
+  <div id="hud">
+    <div><b>AGARZ Premium 2D</b> 🫧✨</div>
+    <div>Mass: <span id="mass">10</span> | HP: <span id="hp">100</span></div>
+    <div>Rank: <span id="rank">?</span> / <span id="players">?</span></div>
+    <div class="small">Sol joystick: hareket • Split • Eject • Boost</div>
+  </div>
+
+  <div id="settingsBtn">⚙️</div>
+  <div id="settingsPanel">
+    <div class="row title">Ayarlar</div>
+
+    <div class="row">
+      <span>FPS</span>
+      <select id="fpsCap">
+        <option value="30">30</option>
+        <option value="60">60</option>
+        <option value="120">120</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <span>Grafik</span>
+      <input id="renderScale" type="range" min="0.6" max="1" step="0.05" value="1">
+      <span id="renderScaleVal">1.00</span>
+    </div>
+
+    <div class="row">
+      <span>Parlaklık</span>
+      <input id="shineToggle" type="checkbox" checked>
+    </div>
+
+    <div class="row">
+      <span>Master</span>
+      <input id="masterVol" type="range" min="0" max="1" step="0.01" value="1">
+    </div>
+
+    <div class="row">
+      <span>Müzik</span>
+      <input id="musicVol" type="range" min="0" max="1" step="0.01" value="0.6">
+    </div>
+
+    <div class="row">
+      <span>SFX</span>
+      <input id="sfxVol" type="range" min="0" max="1" step="0.01" value="0.9">
+    </div>
+
+    <div class="row hint">
+      Zayıf telefon: Grafik 0.70 yap → FPS uçar 😈
+    </div>
+  </div>
+
+  <div id="joyBase"><div id="joyStick"></div></div>
+
+  <div id="splitBtn" class="btn">SPLIT</div>
+  <div id="ejectBtn" class="btn">EJECT</div>
+  <div id="boostBtn" class="btn">BOOST</div>
+
+  <div id="msg">İpucu: Büyükten kaç 😅 küçükleri ye 😈</div>
+
+<script>
+/* ===========================
+   AGARZ PREMIUM 2D (MOBILE)
+   GitHub Pages ✅
+   =========================== */
+
+/* ---------- SETTINGS ---------- */
+const SETTINGS_KEY = "AGARZ_PREMIUM_SETTINGS_V1";
+let Settings = {
+  fpsCap: 60,
+  renderScale: 1.0,
+  shine: true,
+  masterVol: 1.0,
+  musicVol: 0.6,
+  sfxVol: 0.9
+};
+function loadSettings(){
+  try{
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if(raw) Settings = {...Settings, ...JSON.parse(raw)};
+  }catch(e){}
+}
+function saveSettings(){ localStorage.setItem(SETTINGS_KEY, JSON.stringify(Settings)); }
+loadSettings();
+
+/* ---------- UI ---------- */
+const massEl = document.getElementById("mass");
+const hpEl   = document.getElementById("hp");
+const rankEl = document.getElementById("rank");
+const playersEl = document.getElementById("players");
+const msgEl  = document.getElementById("msg");
+
+const settingsBtn = document.getElementById("settingsBtn");
+const settingsPanel = document.getElementById("settingsPanel");
+const fpsCapEl = document.getElementById("fpsCap");
+const renderScaleEl = document.getElementById("renderScale");
+const renderScaleValEl = document.getElementById("renderScaleVal");
+const shineToggleEl = document.getElementById("shineToggle");
+const masterVolEl = document.getElementById("masterVol");
+const musicVolEl  = document.getElementById("musicVol");
+const sfxVolEl    = document.getElementById("sfxVol");
+
+fpsCapEl.value = String(Settings.fpsCap);
+renderScaleEl.value = String(Settings.renderScale);
+renderScaleValEl.textContent = Number(Settings.renderScale).toFixed(2);
+shineToggleEl.checked = !!Settings.shine;
+masterVolEl.value = String(Settings.masterVol);
+musicVolEl.value  = String(Settings.musicVol);
+sfxVolEl.value    = String(Settings.sfxVol);
+
+settingsBtn.onclick = ()=> settingsPanel.style.display = (settingsPanel.style.display==="none"?"block":"none");
+
+fpsCapEl.onchange = ()=> { Settings.fpsCap = parseInt(fpsCapEl.value,10); saveSettings(); };
+renderScaleEl.oninput = ()=>{
+  Settings.renderScale = parseFloat(renderScaleEl.value);
+  renderScaleValEl.textContent = Settings.renderScale.toFixed(2);
+  resize(); saveSettings();
+};
+shineToggleEl.onchange = ()=> { Settings.shine = shineToggleEl.checked; saveSettings(); };
+masterVolEl.oninput = ()=> { Settings.masterVol = parseFloat(masterVolEl.value); saveSettings(); applyAudio(); };
+musicVolEl.oninput  = ()=> { Settings.musicVol  = parseFloat(musicVolEl.value); saveSettings(); applyAudio(); };
+sfxVolEl.oninput    = ()=> { Settings.sfxVol    = parseFloat(sfxVolEl.value); saveSettings(); };
+
+/* ---------- Canvas ---------- */
+const canvas = document.createElement("canvas");
+document.body.insertBefore(canvas, document.body.firstChild);
+const ctx = canvas.getContext("2d", { alpha:false });
+
+function resize(){
+  const scale = Settings.renderScale;
+  const pr = Math.min(devicePixelRatio, 2) * scale;
+  canvas.width  = Math.floor(innerWidth * pr);
+  canvas.height = Math.floor(innerHeight * pr);
+  canvas.style.width = innerWidth + "px";
+  canvas.style.height = innerHeight + "px";
+  ctx.setTransform(pr,0,0,pr,0,0);
+}
+addEventListener("resize", resize);
+resize();
+
+/* ---------- Simple audio (WebAudio) ---------- */
+let audioCtx, masterGain, musicGain, sfxGain;
+function initAudio(){
+  if(audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = audioCtx.createGain();
+  musicGain  = audioCtx.createGain();
+  sfxGain    = audioCtx.createGain();
+  musicGain.connect(masterGain);
+  sfxGain.connect(masterGain);
+  masterGain.connect(audioCtx.destination);
+  applyAudio();
+
+  // mini ambient "music" (soft hum)
+  const osc = audioCtx.createOscillator();
+  osc.type = "sine";
+  osc.frequency.value = 110;
+  const g = audioCtx.createGain();
+  g.gain.value = 0.02;
+  osc.connect(g);
+  g.connect(musicGain);
+  osc.start();
+}
+function applyAudio(){
+  if(!audioCtx) return;
+  masterGain.gain.value = Settings.masterVol;
+  musicGain.gain.value  = Settings.musicVol;
+  sfxGain.gain.value    = Settings.sfxVol;
+}
+function sfx(type="eat"){
+  if(!audioCtx) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = "triangle";
+  o.frequency.value = (type==="eat") ? 380 : (type==="split" ? 240 : 520);
+  g.gain.value = 0.0001;
+  o.connect(g); g.connect(sfxGain);
+  o.start();
+  g.gain.exponentialRampToValueAtTime(0.08, audioCtx.currentTime+0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.12);
+  o.stop(audioCtx.currentTime+0.13);
+}
+
+/* ---------- World ---------- */
+const WORLD = 2600;
+const center = {x:0,y:0};
+
+function rand(a,b){ return a + Math.random()*(b-a); }
+function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
+function dist2(ax,ay,bx,by){ const dx=ax-bx, dy=ay-by; return dx*dx+dy*dy; }
+
+function massToRadius(m){
+  return 8 + Math.sqrt(m)*3.8;
+}
+
+const player = {
+  x: 0, y: 0,
+  vx: 0, vy: 0,
+  mass: 10,
+  hp: 100,
+  colorA: "#22c1ff",
+  colorB: "#1070ff",
+  wob: 0
+};
+
+/* pellets */
+const pellets = [];
+const PELLET_COUNT = 900;
+for(let i=0;i<PELLET_COUNT;i++){
+  pellets.push({
+    x: rand(-WORLD,WORLD),
+    y: rand(-WORLD,WORLD),
+    m: rand(1,2.3),
+    c: `hsl(${Math.floor(rand(0,360))} 90% 60%)`
+  });
+}
+
+/* bots */
+const bots = [];
+function spawnBot(){
+  const m = rand(8,40);
+  bots.push({
+    x: rand(-WORLD,WORLD),
+    y: rand(-WORLD,WORLD),
+    mass: m,
+    c1: `hsl(${Math.floor(rand(0,360))} 90% 55%)`,
+    c2: `hsl(${Math.floor(rand(0,360))} 90% 45%)`,
+    ang: rand(0,Math.PI*2),
+    wob: rand(0,1000)
+  });
+}
+for(let i=0;i<22;i++) spawnBot();
+
+/* camera */
+const cam = {x:0,y:0, zoom:1};
+
+/* ---------- Joystick ---------- */
+const joyBase = document.getElementById("joyBase");
+const joyStick = document.getElementById("joyStick");
+let joyActive=false, joyId=null;
+let joyCenter={x:0,y:0};
+let joyVec={x:0,y:0};
+
+function setJoy(dx,dy){
+  const max=48;
+  const d=Math.hypot(dx,dy);
+  let nx=dx, ny=dy;
+  if(d>max){ nx=dx/d*max; ny=dy/d*max; }
+  joyStick.style.transform=`translate(calc(-50% + ${nx}px), calc(-50% + ${ny}px))`;
+  joyVec.x = nx/max;
+  joyVec.y = ny/max;
+}
+function joyEnd(){
+  joyActive=false; joyId=null;
+  joyVec.x=0; joyVec.y=0;
+  joyStick.style.transform="translate(-50%,-50%)";
+}
+joyBase.addEventListener("touchstart",(e)=>{
+  e.preventDefault();
+  initAudio(); // iOS audio unlock
+  const t=e.changedTouches[0];
+  joyActive=true; joyId=t.identifier;
+  const r=joyBase.getBoundingClientRect();
+  joyCenter.x = r.left + r.width/2;
+  joyCenter.y = r.top  + r.height/2;
+  setJoy(t.clientX-joyCenter.x, t.clientY-joyCenter.y);
+},{passive:false});
+joyBase.addEventListener("touchmove",(e)=>{
+  if(!joyActive) return;
+  e.preventDefault();
+  for(const t of e.changedTouches){
+    if(t.identifier===joyId){
+      setJoy(t.clientX-joyCenter.x, t.clientY-joyCenter.y);
+      break;
+    }
+  }
+},{passive:false});
+joyBase.addEventListener("touchend",(e)=>{ e.preventDefault(); joyEnd(); },{passive:false});
+joyBase.addEventListener("touchcancel",(e)=>{ e.preventDefault(); joyEnd(); },{passive:false});
+
+/* ---------- Buttons ---------- */
+const splitBtn = document.getElementById("splitBtn");
+const ejectBtn = document.getElementById("ejectBtn");
+const boostBtn = document.getElementById("boostBtn");
+
+let boosting = false;
+splitBtn.addEventListener("touchstart",(e)=>{ e.preventDefault(); doSplit(); },{passive:false});
+ejectBtn.addEventListener("touchstart",(e)=>{ e.preventDefault(); doEject(); },{passive:false});
+boostBtn.addEventListener("touchstart",(e)=>{ e.preventDefault(); boosting=true; },{passive:false});
+boostBtn.addEventListener("touchend",(e)=>{ e.preventDefault(); boosting=false; },{passive:false});
+boostBtn.addEventListener("touchcancel",(e)=>{ e.preventDefault(); boosting=false; },{passive:false});
+
+/* split/eject mass particles */
+const blobs = [];
+function doSplit(){
+  if(player.mass < 18) return;
+  player.mass *= 0.55;
+  player.hp = clamp(player.hp+5,0,100);
+  const r = massToRadius(player.mass);
+  const sp = 520;
+  blobs.push({
+    x: player.x + r*2, y: player.y,
+    vx: sp, vy: 0,
+    mass: player.mass*0.55,
+    life: 2.2,
+    c1: player.colorA, c2: player.colorB
+  });
+  sfx("split");
+  msgEl.textContent = "SPLIT 😈";
+}
+function doEject(){
+  if(player.mass < 12) return;
+  player.mass -= 1.2;
+  const sp = 720;
+  blobs.push({
+    x: player.x, y: player.y,
+    vx: sp, vy: 0,
+    mass: 2.0,
+    life: 2.0,
+    c1: "#ffffff", c2: "#cfd8ff"
+  });
+  sfx("shoot");
+}
+
+/* ---------- Draw helpers (REALISTIC 2D) ---------- */
+function drawBackground(){
+  // smooth dark gradient
+  const g = ctx.createLinearGradient(0,0,0,innerHeight);
+  g.addColorStop(0,"#070b12");
+  g.addColorStop(1,"#05070c");
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,innerWidth,innerHeight);
+
+  // grid
+  const step = 60 * cam.zoom;
+  ctx.save();
+  ctx.translate(innerWidth/2, innerHeight/2);
+  ctx.scale(cam.zoom, cam.zoom);
+  ctx.translate(-cam.x, -cam.y);
+
+  ctx.globalAlpha = 0.10;
+  ctx.strokeStyle = "#a8d4ff";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  const left = cam.x - innerWidth/(2*cam.zoom) - 200;
+  const right= cam.x + innerWidth/(2*cam.zoom) + 200;
+  const top  = cam.y - innerHeight/(2*cam.zoom) - 200;
+  const bottom=cam.y + innerHeight/(2*cam.zoom) + 200;
+
+  for(let x=Math.floor(left/120)*120; x<right; x+=120){
+    ctx.moveTo(x, top);
+    ctx.lineTo(x, bottom);
+  }
+  for(let y=Math.floor(top/120)*120; y<bottom; y+=120){
+    ctx.moveTo(left, y);
+    ctx.lineTo(right, y);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawJellyCell(x,y,r,c1,c2,wobble,outline=true){
+  // shadow
+  ctx.save();
+  ctx.translate(innerWidth/2, innerHeight/2);
+  ctx.scale(cam.zoom, cam.zoom);
+  ctx.translate(-cam.x, -cam.y);
+
+  ctx.globalAlpha = 0.25;
+  ctx.fillStyle = "#000";
+  ctx.beginPath();
+  ctx.ellipse(x+6, y+8, r*1.03, r*0.93, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // body (gradient)
+  const grad = ctx.createRadialGradient(x-r*0.4, y-r*0.5, r*0.2, x, y, r*1.15);
+  grad.addColorStop(0, c1);
+  grad.addColorStop(1, c2);
+
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = grad;
+
+  // wobble edge (gives “real” jelly feel)
+  const pts = 34;
+  ctx.beginPath();
+  for(let i=0;i<=pts;i++){
+    const a = (i/pts) * Math.PI*2;
+    const n = Math.sin(a*3 + wobble)*0.045 + Math.sin(a*7 - wobble*0.7)*0.025;
+    const rr = r * (1 + n);
+    const px = x + Math.cos(a)*rr;
+    const py = y + Math.sin(a)*rr;
+    if(i===0) ctx.moveTo(px,py);
+    else ctx.lineTo(px,py);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  // highlight (realistic shine)
+  if(Settings.shine){
+    ctx.globalAlpha = 0.55;
+    const h = ctx.createRadialGradient(x-r*0.45, y-r*0.55, r*0.05, x-r*0.25, y-r*0.35, r*0.65);
+    h.addColorStop(0, "rgba(255,255,255,0.9)");
+    h.addColorStop(1, "rgba(255,255,255,0.0)");
+    ctx.fillStyle = h;
+    ctx.beginPath();
+    ctx.arc(x-r*0.2, y-r*0.25, r*0.75, 0, Math.PI*2);
+    ctx.fill();
+
+    // small specular dot
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = "rgba(255,255,255,0.8)";
+    ctx.beginPath();
+    ctx.arc(x-r*0.45, y-r*0.55, Math.max(2, r*0.06), 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // outline
+  if(outline){
+    ctx.globalAlpha = 0.45;
+    ctx.lineWidth = Math.max(1.2, r*0.06);
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawPellets(){
+  ctx.save();
+  ctx.translate(innerWidth/2, innerHeight/2);
+  ctx.scale(cam.zoom, cam.zoom);
+  ctx.translate(-cam.x, -cam.y);
+
+  for(const p of pellets){
+    const rr = 2.8 + p.m*1.1;
+    ctx.globalAlpha = 0.95;
+    ctx.fillStyle = p.c;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, rr, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/* ---------- Gameplay update ---------- */
+function update(dt){
+  // player radius/zoom
+  const pr = massToRadius(player.mass);
+  const targetZoom = clamp(1.1 - (pr/220), 0.45, 1.08);
+  cam.zoom += (targetZoom - cam.zoom) * clamp(dt*6,0,1);
+
+  // movement
+  const baseSpeed = 420 / Math.sqrt(player.mass);
+  const boostMult = boosting ? 1.55 : 1.0;
+  const mx = joyVec.x;
+  const my = joyVec.y;
+  player.vx = mx * baseSpeed * boostMult;
+  player.vy = my * baseSpeed * boostMult;
+
+  player.x += player.vx * dt;
+  player.y += player.vy * dt;
+
+  // world bounds
+  player.x = clamp(player.x, -WORLD, WORLD);
+  player.y = clamp(player.y, -WORLD, WORLD);
+
+  // camera follow
+  cam.x += (player.x - cam.x) * clamp(dt*7,0,1);
+  cam.y += (player.y - cam.y) * clamp(dt*7,0,1);
+
+  // wobble
+  player.wob += dt*3.5;
+
+  // eat pellets
+  const eatR = pr * 0.9;
+  for(let i=pellets.length-1;i>=0;i--){
+    const p = pellets[i];
+    if(dist2(player.x,player.y,p.x,p.y) < (eatR*eatR)){
+      player.mass += p.m*0.45;
+      pellets.splice(i,1);
+      pellets.push({x:rand(-WORLD,WORLD), y:rand(-WORLD,WORLD), m:rand(1,2.3), c:`hsl(${Math.floor(rand(0,360))} 90% 60%)`});
+      if(Math.random()<0.15) sfx("eat");
+    }
+  }
+
+  // blobs move
+  for(let i=blobs.length-1;i>=0;i--){
+    const b = blobs[i];
+    b.life -= dt;
+    b.x += b.vx*dt; b.y += b.vy*dt;
+    b.vx *= Math.pow(0.08, dt);
+    b.vy *= Math.pow(0.08, dt);
+    if(b.life<=0) blobs.splice(i,1);
+  }
+
+  // bots behavior
+  for(const bot of bots){
+    bot.wob += dt*2.6;
+    const br = massToRadius(bot.mass);
+
+    // simple AI: avoid bigger, chase smaller pellets
+    const dToPlayer = Math.hypot(player.x-bot.x, player.y-bot.y);
+    const playerR = pr;
+
+    let tx = bot.x + Math.cos(bot.ang)*120;
+    let ty = bot.y + Math.sin(bot.ang)*120;
+
+    if(player.mass > bot.mass*1.15 && dToPlayer < 520){
+      // run away
+      const ax = bot.x - player.x;
+      const ay = bot.y - player.y;
+      const n = Math.hypot(ax,ay) || 1;
+      tx = bot.x + (ax/n)*200;
+      ty = bot.y + (ay/n)*200;
+    }
+
+    // move
+    const sp = 340 / Math.sqrt(bot.mass);
+    const ax = tx - bot.x;
+    const ay = ty - bot.y;
+    const n = Math.hypot(ax,ay) || 1;
+    bot.x += (ax/n)*sp*dt;
+    bot.y += (ay/n)*sp*dt;
+
+    if(Math.random()<0.01){
+      bot.ang = rand(0,Math.PI*2);
+    }
+
+    // eat pellets
+    const eatRR = br*0.9;
+    for(let i=pellets.length-1;i>=0;i--){
+      const p = pellets[i];
+      if(dist2(bot.x,bot.y,p.x,p.y) < (eatRR*eatRR)){
+        bot.mass += p.m*0.35;
+        pellets.splice(i,1);
+        pellets.push({x:rand(-WORLD,WORLD), y:rand(-WORLD,WORLD), m:rand(1,2.3), c:`hsl(${Math.floor(rand(0,360))} 90% 60%)`});
+        break;
+      }
+    }
+
+    // bot vs player eat (simple)
+    if(dToPlayer < (br - playerR)*0.95 && bot.mass > player.mass*1.18){
+      // player dies
+      player.hp -= 28*dt;
+      if(player.hp <= 0){
+        player.hp = 0;
+        msgEl.textContent = "ÖLDÜN 💀 Sayfayı yenile 😅";
+      }
+    }
+    if(dToPlayer < (playerR - br)*0.95 && player.mass > bot.mass*1.20){
+      // player eats bot
+      player.mass += bot.mass*0.65;
+      bot.mass = rand(8,28);
+      bot.x = rand(-WORLD,WORLD);
+      bot.y = rand(-WORLD,WORLD);
+      msgEl.textContent = "Bot yedin 😈 +mass";
+      sfx("eat");
+    }
+  }
+
+  // UI
+  massEl.textContent = Math.floor(player.mass);
+  hpEl.textContent = Math.floor(player.hp);
+  playersEl.textContent = String(bots.length + 1);
+
+  // fake rank (based on mass)
+  let better = 1;
+  for(const b of bots){ if(b.mass > player.mass) better++; }
+  rankEl.textContent = String(better);
+
+  // regen hp slightly
+  if(player.hp > 0) player.hp = clamp(player.hp + dt*1.2, 0, 100);
+}
+
+/* ---------- Render ---------- */
+function render(){
+  drawBackground();
+  drawPellets();
+
+  // blobs (eject/split particles)
+  for(const b of blobs){
+    const rr = massToRadius(b.mass) * 0.65;
+    drawJellyCell(b.x,b.y,rr,b.c1,b.c2, performance.now()*0.002, false);
+  }
+
+  // bots
+  for(const bot of bots){
+    const r = massToRadius(bot.mass);
+    drawJellyCell(bot.x,bot.y,r,bot.c1,bot.c2, bot.wob);
+  }
+
+  // player
+  const pr = massToRadius(player.mass);
+  drawJellyCell(player.x,player.y,pr,player.colorA,player.colorB, player.wob);
+
+  // border hint (world edge)
+  ctx.save();
+  ctx.translate(innerWidth/2, innerHeight/2);
+  ctx.scale(cam.zoom, cam.zoom);
+  ctx.translate(-cam.x, -cam.y);
+  ctx.globalAlpha = 0.14;
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = "#7fd0ff";
+  ctx.strokeRect(-WORLD, -WORLD, WORLD*2, WORLD*2);
+  ctx.restore();
+}
+
+/* ---------- FPS CAP LOOP ---------- */
+let last = performance.now();
+let acc = 0;
+
+function loop(now){
+  requestAnimationFrame(loop);
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+
+  acc += dt;
+  const step = 1 / (Settings.fpsCap || 60);
+
+  // update at fpsCap
+  if(acc >= step){
+    initAudio(); // safe if already init
+    update(acc);
+    acc = 0;
+  }
+
+  render();
+}
+requestAnimationFrame(loop);
+
+// prevent iOS scroll bounce
+document.body.addEventListener("touchmove", (e)=>e.preventDefault(), {passive:false});
+</script>
+
+</body>
+</html>
